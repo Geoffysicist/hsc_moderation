@@ -1,0 +1,9 @@
+HSC Moderation and Tied Scores v.2
+It's back, baby!
+Volume testing suggested that v.1 was a bit broken, so after a lot of frustration and swearing trying to reverse engineer an algorithm to fit NESA's limited description and sample set, I begged Prof. Google who finally dug up a copy of the original technical paper which outlines the method in glorious, mathematical detail.
+So, coding bugs aside, I am a lot more confident that this version more faithfully replicates NESA moderation.
+** The executive summary is that separating tied students is a zero sum game. You benefit the higher ranked students at the expense of the lower ranked students. **
+That summary must be taken with the usual caveats about this only being a model, only being valid or the conditions under which it was tested, not being peer reviewed etc. So please, if you have time to look at the code and can find any bug or suggest improvements let me know.
+That summary is also not a recommendation for either approach, just an analysis to inform your decision.
+Finally, the code is in a public repository so you can download it and run it in your own jupyter notebook and see how robust the conclusions are to changes in the model assumptions.
+Links to the technical paper are also in the jupyter notebook which you can find here: https://github.com/Geoffysicist/hsc_moderation/blob/master/hsc_moderation.ipynb
