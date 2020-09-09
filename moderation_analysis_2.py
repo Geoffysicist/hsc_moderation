@@ -72,42 +72,49 @@ def generate_exam_scores(scores, mean_delta, sd_delta):
         
     return exam
 
-def adjust_exam(school, exam):
+def check_ties(school, exam):
     # first sort then
     # if school scores are tied, recalculate the maximum exam score
-    exam_sorted = np.flip(np.sort(exam))
-    tied_places = 0
-    for i in range(np.size(school)):
+    exam_checked = np.flip(np.sort(exam))
+    n = np.size(school) - 1
+    tied_firsts = 0
+    tied_lasts = 0
+    for i in range(1,n):
         if school[0] == school[i]:
-            tied_places = i
+            tied_firsts = i
+        if school[n] == school[n-i]:
+            tied_lasts = i
     
-    if tied_places:
-        high_score = np.sum(exam_sorted[:tied_places+1])/(tied_places + 1)
-        exam_sorted[:tied_places+1] = high_score
-        # replace_above = exam_sorted[tied_places] - 1
-        # print(high_score, replace_above)
-        
-        # for i in range(np.size(exam)):
-        #     if exam[i] > replace_above:
-        #         exam[i] = np.rint(high_score)
-        
+    if tied_firsts:
+        high_score = np.sum(exam_checked[:tied_firsts+1])/(tied_firsts + 1)
+        exam_checked[:tied_firsts+1] = high_score
+        print(f'{tied_firsts} tied firsts, marks adjusted: {exam_checked}')
 
-    return exam_sorted
-    
-def stretch(in_array, out_min, out_max):
-    low = np.min(in_array)
-    high = np.max(in_array)
-    in_range = high - low
-    return out_min + (in_array - low)* (out_max - out_min)/in_range    
+    if tied_lasts:
+        low_score = np.sum(exam_checked[n-tied_lasts:])/(tied_lasts + 1)
+        exam_checked[n-tied_lasts:] = low_score
+        print(f'{tied_lasts} tied lasts, marks adjusted: {exam_checked}')
+
+
+    return exam_checked
  
 def get_stats(in_array):
     ''' Calculate the descriptive stats of a numpy array
+
+    Args:
+        in_array (numpy array) - data to be described
+
+    Returns:
+        stats_array (numpy array) - an array containing the max, min, mean
+            standard deviation and sum of the input array
     '''
-    return np.array([np.amax(in_array),
+    stats_array = np.array([np.amax(in_array),
                     np.amin(in_array), 
                     np.mean(in_array), 
                     np.std(in_array), 
                     np.sum(in_array)])
+
+    return stats_array
 
 def moderate(school, exam):
     school_stats = get_stats(school)
@@ -119,16 +126,49 @@ def moderate(school, exam):
     exam_max = exam_stats[0]
     exam_min = exam_stats[1]
     exam_mean = exam_stats[2]
+    n = np.size(school)
 
-    a_num = exam_max*(school_min-school_mean) - exam_min*(school_max-school_mean) + exam_mean*(school_max-school_min)
-    a_denom = (school_max-school_min)*(school_sd**2 + (school_max-school_mean)*(school_min-school_mean))
-    a = a_num/a_denom
+    # start with special cases
+    # n = 1
+    if n == 1:
+        moderated = exam
 
-    b = (exam_min - exam_mean - a*(school_min**2-school_mean**2-school_sd**2))/(school_min-school_mean)
+    # n = 2
+    elif n == 2:
+        mod_min = max(exam_min, (school_min/school_max)*exam_max)
+        moderated = np.array([exam_max, mod_min])
+    
+    # all school ranks tied
+    elif school_max == school_min:
+        moderated = np.mean(exam)
 
-    c = exam_min - school_min*(a*school_min + b)
+    else:
+        # n > 2 but only 2 distinct values
+        if np.size(np.unique(school)) == 2:
+            a = 0
+            b = (exam_max - exam_min) / (school_max - school_min)
+            c = exam_min - b * school_min
 
-    return np.rint(np.polyval([a,b,c],school))
+        # ya normal case
+        else:
+            # TODO make this more elegant
+            exam = check_ties(school, exam)
+            exam_stats = get_stats(exam)
+            exam_max = exam_stats[0]
+            exam_min = exam_stats[1]
+            exam_mean = exam_stats[2]
+    
+            a_num = exam_max*(school_min-school_mean) - exam_min*(school_max-school_mean) + exam_mean*(school_max-school_min)
+            a_denom = (school_max-school_min)*(school_sd**2 + (school_max-school_mean)*(school_min-school_mean))
+            a = a_num/a_denom
+
+            b = (exam_min - exam_mean - a*(school_min**2-school_mean**2-school_sd**2))/(school_min-school_mean)
+
+            c = exam_min - school_min*(a*school_min + b)
+        
+        moderated = np.rint(np.polyval([a,b,c],school))
+
+    return moderated
             
 
 if __name__ == "__main__":
@@ -169,20 +209,19 @@ if __name__ == "__main__":
         print(f'school scores split:    {school_scores_split}')
         print(f'exam scores:            {exam_scores}')
         
-        exam_adjusted = adjust_exam(school_scores, exam_scores)
-
-        print(f'adjusted exam:          {exam_adjusted}')
-
-        moderated_scores = moderate(school_scores, exam_adjusted)
+        moderated_scores = moderate(school_scores, exam_scores)
         moderated_scores_split = moderate(school_scores_split, exam_scores)
         print(f'moderated scores:       {moderated_scores}')
         print(f'moderated scores split: {moderated_scores_split}')
 
         print(f'school scores stats:          {np.rint(get_stats(school_scores))}')
         print(f'exam scores stats:            {np.rint(get_stats(exam_scores))}')
-        print(f'adjusted exam stats:          {np.rint(get_stats(exam_adjusted))}')
         print(f'moderated scores stats:       {np.rint(get_stats(moderated_scores))}')
         print(f'moderated scores split stats: {np.rint(get_stats(moderated_scores))}')
         print(f'winners and losers:           {moderated_scores_split - moderated_scores}')
 
-        # winners_losers = 
+
+test = np.array([1,3,3, 3,1,5])
+# test = np.unique(test)
+print(test)
+print(np.size(np.unique(test)))
