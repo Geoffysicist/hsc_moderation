@@ -260,7 +260,7 @@ def multi_run_plot(effect, inputs):
         
     plt.axhline(0, color='black')
     plt.xlabel('school rank\n\n' + caption_text)
-    plt.ylabel(f'mean & sd of difference over {runs} runs')
+    plt.ylabel(f'mean & sd of moderated score minus school score')
     plt.title(title_text)
     plt.show()
     
