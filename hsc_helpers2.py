@@ -237,20 +237,27 @@ def multi_run_plot(effect, inputs):
                 )
     
     if tied in ('tie', 'pair', 'triple'):
+        tie = True
         if tied == 'pair':
             tied_state = 'exactly two'
         elif tied == 'triple':
             tied_state = 'exactly three'
         else:
             tied_state = 'at least two'
-        title_text = f'Effect of splitting ranks when {tied_state} top scores are tied'
+        title_text = f'Effect of moderation of school scores when {tied_state} top scores are tied'
     else:
-        title_text = 'The effect of moderation of school scores'
+        tie = False
+        title_text = 'Effect of moderation of school scores'
 
+    fig = plt.figure(figsize=(8,6))
+
+    if tie:
+        plt.errorbar(ranks, np.mean(effect[0], axis=0), yerr=np.std(effect[0], axis=0), marker='X', label='tied', c=(0,0.45,0.7), capsize=6, ls='')
+        plt.errorbar(ranks, np.mean(effect[1], axis=0), yerr=np.std(effect[1], axis=0), marker='P', label='split', c=(0.9,0.6,0), capsize=6, ls='')
+        plt.legend()
+    else: 
+        plt.errorbar(ranks, np.mean(effect, axis=0), yerr=np.std(effect, axis=0), fmt='o', c=(0,0.6,0.5))
         
-
-    fig = plt.figure()
-    plt.errorbar(ranks, np.mean(effect, axis=0), yerr=np.std(effect, axis=0), fmt='o')
     plt.axhline(0, color='black')
     plt.xlabel('school rank\n\n' + caption_text)
     plt.ylabel(f'mean & sd of difference over {runs} runs')
@@ -261,7 +268,13 @@ def multi_run_plot(effect, inputs):
 def multi_run(inputs):
     [n, mean, sd, school_max, mean_delta, sd_delta, runs, tied] = inputs
     
+    if tied in ('tie', 'pair', 'triple'):
+        split = True
+    else:
+        split = False
+    
     effect = np.empty(n)
+    effect_split = np.empty(n)
     
     for ctr in range(1, runs):
         school_scores = generate_class_scores(n, mean, sd, max_score=school_max, tied='tie')
@@ -269,26 +282,29 @@ def multi_run(inputs):
         
         moderated_scores = moderate(school_scores, exam_scores)
             
-        if tied in ('tie', 'pair', 'triple'):
+        if split:
             # the tied cases
             school_scores_split = copy.deepcopy(school_scores)
             school_scores_split[0] += 1
             moderated_scores_split = moderate(school_scores_split, exam_scores)
-            difference = moderated_scores_split - moderated_scores
-        else:
-            difference = moderated_scores - school_scores
+            difference_split = moderated_scores_split - school_scores
+        
+        difference = moderated_scores - school_scores
 
         # this is painful but numpy need to append like to like so...
         # see if you can spot the difference
         if ctr != 1:
-#             effect = np.append(effect, [(moderated_scores_split - moderated_scores)], axis = 0)
             effect = np.append(effect, [difference], axis = 0)
+            if split: effect_split = np.append(effect_split, [difference_split], axis = 0)
         else: # first run
-#             effect = np.append([effect], [(moderated_scores_split - moderated_scores)], axis = 0)
             effect = np.append([effect], [difference], axis = 0)
+            if split: effect_split = np.append([effect_split], [difference_split], axis = 0)
     
     # remove the first empty row
     effect = np.delete(effect,0,0)
-    
-    return effect
+    if split: 
+        effect_split = np.delete(effect_split,0,0)
+        return [effect, effect_split]
+    else:
+        return effect
 
