@@ -220,91 +220,171 @@ def moderate(school, exam):
 
     return moderated
 
-def multi_run_plot(effect, inputs):
-    
-    [n, mean, sd, school_max, mean_delta, sd_delta, runs, tied] = inputs
-    
+def multi_run_plot(diff_mod_cum, diff_hsc_cum, n, params_text):
+
     ranks = np.arange(1,n+1)
-    caption_text = (
-                f'Model parameters:\n'
-                f'    number of students in the subject at the school = {n}\n'
-                f'    mean of the school assessment scores = {mean}\n'
-                f'    standard deviation of the school assessment scores = {sd}\n'
-                f'    maximum school mark = {school_max}\n'
-                f'    mean of the difference between school assessment and hsc scores = {mean_delta}\n'
-                f'    standard deviation of the difference between school assessment and hsc scores = {sd_delta}\n'
-                f'    number of data sets or iterations compared = {runs}.'
-                )
     
-    if tied in ('tie', 'pair', 'triple'):
-        tie = True
-        if tied == 'pair':
-            tied_state = 'exactly two'
-        elif tied == 'triple':
-            tied_state = 'exactly three'
-        else:
-            tied_state = 'at least two'
-        title_text = f'Effect of moderation of school scores when {tied_state} top scores are tied'
-    else:
-        tie = False
-        title_text = 'Effect of moderation of school scores'
+    rank_title_text = 'Effect of moderation of school scores by rank'
 
     fig = plt.figure(figsize=(8,6))
 
-    if tie:
-        plt.errorbar(ranks, np.mean(effect[0], axis=0), yerr=np.std(effect[0], axis=0), marker='X', label='tied', c=(0,0.45,0.7), capsize=6, ls='')
-        plt.errorbar(ranks, np.mean(effect[1], axis=0), yerr=np.std(effect[1], axis=0), marker='P', label='split', c=(0.9,0.6,0), capsize=6, ls='')
-        plt.legend()
-    else: 
-        plt.errorbar(ranks, np.mean(effect, axis=0), yerr=np.std(effect, axis=0), fmt='o', c=(0,0.6,0.5))
-        
-    plt.axhline(0, color='black')
-    plt.xlabel('school rank\n\n' + caption_text)
-    plt.ylabel(f'mean & sd of moderated score minus school score')
-    plt.title(title_text)
+    plt.errorbar(ranks, np.mean(diff_mod_cum, axis=0), yerr=np.std(diff_mod_cum, axis=0), marker='X', label='moderated score', c=(0,0.45,0.7), capsize=6, ls='')
+    plt.errorbar(ranks, np.mean(diff_hsc_cum, axis=0), yerr=np.std(diff_hsc_cum, axis=0), marker='P', label='hsc mark', c=(0.9,0.6,0), capsize=6, ls='')
+    plt.legend()       
+    plt.axhline(0, color='lightgrey', lw=1)
+    plt.xlabel('school rank\n\n' + params_text)
+    plt.ylabel(f'mean & sd of moderated:hsc score minus school score')
+    plt.title(rank_title_text)
+     
+    plt.show()
+    
+def multi_run_plot_split(diff_mod_cum, diff_hsc_cum, diff_mod_split_cum, diff_hsc_split_cum, n, tied, params_text):
+    # diff_mod_cum, diff_hsc_cum, diff_mod_split_cum, diff_hsc_split_cum, n, tied, params_text
+    
+    ranks = np.arange(1,n+1)
+    
+    #compare the split and tied cases
+    diff_split_tied = diff_mod_split_cum - diff_mod_cum
+    
+    if tied == 'pair':
+        tied_state = 'exactly two'
+    elif tied == 'triple':
+        tied_state = 'exactly three'
+    else:
+        tied_state = 'at least two'
+    
+    fig = plt.figure(figsize=(16,6))
+
+    plt.subplot(1, 2, 1)
+    plt.errorbar(ranks, np.mean(diff_mod_cum, axis=0), yerr=np.std(diff_mod_cum, axis=0), marker='X', label='score tied', c=(0,0.45,0.7), capsize=6, ls='')
+    plt.errorbar(ranks, np.mean(diff_mod_split_cum, axis=0), yerr=np.std(diff_mod_split_cum, axis=0), marker='P', label='score split', c=(0.9,0.6,0), capsize=6, ls='')
+    plt.legend()       
+    plt.axhline(0, color='lightgrey', lw=1)
+    plt.xlabel('school rank\n\n' + params_text)
+    plt.ylabel(f'mean & sd of tied:split score minus school score')
+    plt.title(f'Comparison of moderation of tied and split school scores\nwhen {tied_state} top scores are tied\nby rank')
+    
+    plt.subplot(1, 2, 2)
+    plt.errorbar(ranks, np.mean(diff_split_tied, axis=0), yerr=np.std(diff_split_tied, axis=0), marker='P', c=(0,0.45,0.7), capsize=6, ls='')
+    plt.axhline(0, color='lightgrey', lw=1)
+    plt.xlabel('school rank\n\n' + params_text)
+    plt.ylabel(f'mean & sd of split minus tied score')
+    plt.title(f'Difference between moderated split and tied school scores\nen {tied_state} top scores are tied\nby rank')
+    
+    plt.show()
+    
+def single_run_plot_split(n, school_scores, exam_scores, mod_scores, mod_scores_split, hsc_scores, params_text):
+    ranks = np.arange(1,n+1)
+    
+    fig = plt.figure(figsize=(8,6))
+    
+    marker_size = 100
+
+    plt.scatter(ranks, school_scores, label='school score', color=(0,0.45,0.7), marker='+', s=marker_size)
+    plt.scatter(ranks, exam_scores, label='exam mark', color=(0.9,0.6,0), marker='x', s=marker_size)
+    plt.scatter(ranks, mod_scores, label='moderated score tied', color=(0.8,0.4,0), marker='3', s=marker_size)
+    plt.scatter(ranks, mod_scores_split, label='moderated score split', color=(0,0.6,0.5), marker='4', s=marker_size)
+    plt.legend()       
+    plt.xlabel('school rank\n\n' + params_text)
+    plt.ylabel(f'mean & sd of moderated:hsc score minus school score')
+    plt.title('Comparison of school scores, exam scores and moderated scores')
+     
+    plt.show()
+    
+def single_run_plot(n, school_scores, exam_scores, mod_scores, hsc_scores, params_text):
+    ranks = np.arange(1,n+1)
+    
+    fig = plt.figure(figsize=(8,6))
+    
+    marker_size = 100
+
+    plt.scatter(ranks, school_scores, label='school score', color=(0,0.45,0.7), marker='+', s=marker_size)
+    plt.scatter(ranks, exam_scores, label='exam mark', color=(0.9,0.6,0), marker='1', s=marker_size)
+    plt.scatter(ranks, mod_scores, label='moderated score', color=(0.8,0.4,0.4), marker='x', s=marker_size)
+    plt.legend()       
+    plt.xlabel('school rank\n\n' + params_text)
+    plt.ylabel(f'mean & sd of moderated:hsc score minus school score')
+    plt.title('Comparison of school scores, exam scores and moderated scores')
+     
     plt.show()
     
 
 def multi_run(inputs):
     [n, mean, sd, school_max, mean_delta, sd_delta, runs, tied] = inputs
     
+    params_text = (
+            f'Model parameters:\n'
+            f'    number of students in the subject at the school = {n}\n'
+            f'    mean of the school assessment scores = {mean}\n'
+            f'    standard deviation of the school assessment scores = {sd}\n'
+            f'    maximum school mark = {school_max}\n'
+            f'    mean of the difference between school assessment and hsc scores = {mean_delta}\n'
+            f'    standard deviation of the difference between school assessment and hsc scores = {sd_delta}\n'
+            f'    number of data sets or iterations compared = {runs}.'
+            )
+
+    diff_mod_cum = np.empty(n)
+    diff_hsc_cum = np.empty(n)
+    
     if tied in ('tie', 'pair', 'triple'):
         split = True
+        diff_mod_split_cum = np.empty(n)
+        diff_hsc_split_cum = np.empty(n)
     else:
         split = False
     
-    effect = np.empty(n)
-    effect_split = np.empty(n)
     
-    for ctr in range(1, runs):
+    for ctr in range(runs):
         school_scores = generate_class_scores(n, mean, sd, max_score=school_max, tied='tie')
         exam_scores = generate_exam_scores(school_scores, mean_delta, sd_delta, n)
         
-        moderated_scores = moderate(school_scores, exam_scores)
+        mod_scores = moderate(school_scores, exam_scores)
+        hsc_scores = np.mean(np.array([mod_scores, exam_scores]), axis=0)
+        diff_mod = mod_scores - school_scores
+        diff_hsc = hsc_scores - school_scores
             
         if split:
             # the tied cases
             school_scores_split = copy.deepcopy(school_scores)
             school_scores_split[0] += 1
-            moderated_scores_split = moderate(school_scores_split, exam_scores)
-            difference_split = moderated_scores_split - school_scores
-        
-        difference = moderated_scores - school_scores
+            mod_scores_split = moderate(school_scores_split, exam_scores)
+            hsc_scores_split = np.mean(np.array([mod_scores_split, exam_scores]), axis=0)
+            diff_mod_split = mod_scores_split - school_scores
+            diff_hsc_split = hsc_scores_split - school_scores
 
         # this is painful but numpy need to append like to like so...
         # see if you can spot the difference
-        if ctr != 1:
-            effect = np.append(effect, [difference], axis = 0)
-            if split: effect_split = np.append(effect_split, [difference_split], axis = 0)
+        if ctr != 0:
+            diff_mod_cum = np.append(diff_mod_cum, [diff_mod], axis = 0)
+            diff_hsc_cum = np.append(diff_hsc_cum, [diff_hsc], axis = 0)
+            if split:
+                diff_mod_split_cum = np.append(diff_mod_split_cum, [diff_mod_split], axis = 0)
+                diff_hsc_split_cum = np.append(diff_hsc_split_cum, [diff_hsc_split], axis = 0)
         else: # first run
-            effect = np.append([effect], [difference], axis = 0)
-            if split: effect_split = np.append([effect_split], [difference_split], axis = 0)
+            diff_mod_cum = np.append([diff_mod_cum], [diff_mod], axis = 0)
+            diff_hsc_cum = np.append([diff_hsc_cum], [diff_hsc], axis = 0)
+            if split: 
+                diff_mod_split_cum = np.append([diff_mod_split_cum], [diff_mod_split], axis = 0)
+                diff_hsc_split_cum = np.append([diff_hsc_split_cum], [diff_hsc_split], axis = 0)
     
-    # remove the first empty row
-    effect = np.delete(effect,0,0)
-    if split: 
-        effect_split = np.delete(effect_split,0,0)
-        return [effect, effect_split]
+    # remove the first empty rows
+    diff_mod_cum = np.delete(diff_mod_cum,0,0)
+    diff_hsc_cum = np.delete(diff_hsc_cum,0,0)
+    
+    
+    if split:
+        # remove the first empty rows
+        diff_mod_split_cum = np.delete(diff_mod_split_cum,0,0)
+        diff_hsc_split_cum = np.delete(diff_hsc_split_cum,0,0)
+        
+        if runs == 1:
+            single_run_plot_split(n, school_scores, exam_scores, mod_scores, mod_scores_split, hsc_scores, params_text)            
+        else:
+            multi_run_plot_split(diff_mod_cum, diff_hsc_cum, diff_mod_split_cum, diff_hsc_split_cum, n, tied, params_text)
+
     else:
-        return effect
+        if runs == 1:
+            single_run_plot(n, school_scores, exam_scores, mod_scores, hsc_scores, params_text) 
+        else:
+            multi_run_plot(diff_mod_cum, diff_hsc_cum, n, params_text)
 
